@@ -1,18 +1,14 @@
 import serial
-import struct
 
-# Open serial connection to OpenMV (change COM port if needed)
-ser = serial.Serial('COM9', 115200, timeout=5)  # Windows: 'COMx', Linux/Mac: '/dev/ttyUSB0' or '/dev/ttyACM0'
+# Open the serial port (make sure to select the correct port)
+ser = serial.Serial('/dev/ttyS1', 115200)  # Replace 'COM_PORT' with your actual port
 
-# Read image size first (4 bytes)
-size_data = ser.read(4)
-size = struct.unpack('>I', size_data)[0]  # Convert bytes to integer
+# Prepare to receive the image
+with open("received_image.jpg", "wb") as f:
+    while True:
+        data = ser.read(256)  # Read 256 bytes at a time
+        if not data:
+            break  # Exit when no more data is available
+        f.write(data)  # Write the received data to the file
 
-# Read the image data
-image_data = ser.read(size)
-
-# Save the image
-with open("Ambientes_Inteligentes.jpg", "wb") as f:
-    f.write(image_data)
-
-print("Image saved as 'Ambientes_Inteligentes.jpg'")
+print("Image received and saved.")
