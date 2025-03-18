@@ -1,32 +1,37 @@
-from flask import Flask, request
+import socket
 import os
+import time
 
-app = Flask(__name__)
+# Configuração do Servidor
+HOST = "0.0.0.0"  # Escuta em todas as interfaces de rede
+PORT = 52870  # Porta que a Nicla Vision está a usar
+SAVE_FOLDER = "received_images"
 
-UPLOAD_FOLDER = "uploads"
-ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png"}
+# Criar a pasta para armazenar as imagens
+os.makedirs(SAVE_FOLDER, exist_ok=True)
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+# Criar socket do servidor
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind((HOST, PORT))
+server_socket.listen(5)
 
-def allowed_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+print(f"📡 Servidor a escutar em {HOST}:{PORT}...")
 
-@app.route("/upload", methods=["POST"])
-def upload_file():
-    if "file" not in request.files:
-        return "No file part", 400
-    
-    file = request.files["file"]
-    if file.filename == "":
-        return "No selected file", 400
+while True:
+    conn, addr = server_socket.accept()
+    print(f"📥 Conexão recebida de {addr}")
 
-    if not allowed_file(file.filename):
-        return "File type not allowed", 400
+    # Criar nome único para a imagem recebida
+    timestamp = int(time.time())
+    filename = os.path.join(SAVE_FOLDER, f"received_{timestamp}.jpg")
 
-    filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
-    file.save(filepath)
-    return f"File {file.filename} uploaded successfully!", 200
+    # Receber os dados da imagem e salvar no ficheiro
+    with open(filename, "wb") as f:
+        while True:
+            data = conn.recv(1024)
+            if not data:
+                break
+            f.write(data)
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    print(f"✅ Imagem recebida e armazenada em: {filename}")
+    conn.close()
