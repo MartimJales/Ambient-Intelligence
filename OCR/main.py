@@ -4,8 +4,11 @@ import cv2
 import pytesseract
 import pywhatkit as kit
 # import win32api
-import pygame
-import easyocr
+import contextlib
+with open(os.devnull, 'w') as fnull:
+    with contextlib.redirect_stdout(fnull), contextlib.redirect_stderr(fnull):
+        import pygame
+        import easyocr
 import sqlite3
 
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
@@ -36,21 +39,24 @@ def draw_boxes(image_path, iteration=1):
         print(f"[ERROR] Failed to read image: {image_path}")
         return None
 
-    reader = easyocr.Reader(['en'])
+    # Initialize the EasyOCR reader (you can specify the language here, e.g., 'en' for English)
+    with open(os.devnull, 'w') as fnull:
+        with contextlib.redirect_stdout(fnull), contextlib.redirect_stderr(fnull):
+            reader = easyocr.Reader(['en'])
     results = reader.readtext(image_path)
 
     detected_numbers = []
-    
+
     for result in results:
         bbox, text, confidence = result
-        if text.isdigit():  
+        if text.isdigit():
             detected_numbers.append(text)
             # Draw bounding box
             (top_left, top_right, bottom_right, bottom_left) = bbox
             top_left = tuple(map(int, top_left))
             bottom_right = tuple(map(int, bottom_right))
             cv2.rectangle(img, top_left, bottom_right, (0, 255, 0), 2)
-            cv2.putText(img, text, (top_left[0], top_left[1] - 10), 
+            cv2.putText(img, text, (top_left[0], top_left[1] - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
 
     if detected_numbers:
@@ -100,18 +106,21 @@ def obter_numeros_da_base_dados(caminho_db="contactos.db"):
     return [numero[0] for numero in resultados]
 
 def enviar_mensagem_para_contactos(detected_number, caminho_db="contactos.db"):
-    """Vai buscar os contactos à base de dados e envia a mensagem para cada um via WhatsApp."""
+    """Vai buscar os contactos à base de dados e envia a mensagem personalizada para cada um via WhatsApp."""
     try:
         conn = sqlite3.connect(caminho_db)
         cursor = conn.cursor()
-        cursor.execute("SELECT numero FROM contactos")
-        numeros_destinatarios = [numero[0] for numero in cursor.fetchall()]
+        cursor.execute("SELECT nome, numero FROM contactos")
+        contactos = cursor.fetchall()
         conn.close()
 
-        for numero in numeros_destinatarios:
-            mensagem = f"Alerta do sistema: o número lido foi {detected_number}!"
-            print(f"[INFO] A enviar mensagem para {numero}")
-            kit.sendwhatmsg_instantly(numero, mensagem, tab_close=True)
+        for nome, numero in contactos:
+            mensagem = f"Hello {nome}, the bus number *{detected_number}* is arriving at IST :)"
+            print(f"[INFO] Sending message to {nome}")
+            with open(os.devnull, 'w') as fnull:
+                with contextlib.redirect_stdout(fnull), contextlib.redirect_stderr(fnull):
+                    kit.sendwhatmsg_instantly(numero, mensagem, tab_close=True)
+
     except Exception as e:
         print(f"[ERRO] Falha ao enviar mensagens: {e}")
 
