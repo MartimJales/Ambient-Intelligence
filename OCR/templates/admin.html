@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - Contact List</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border: 1px solid #ccc;
+    }
+
+    th {
+      background-color: #00a0e4;
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    h2 {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
+      background-color: white;
+    }
+
+    a {
+      text-decoration: none;
+      color: #00a0e4;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>📋 Contact Database</h2>
+  <a href="/">← Back to form</a>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Phone Number</th>
+        {% if has_autocarro %}
+        <th>Bus</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for contacto in contactos %}
+      <tr>
+        <td>{{ contacto[0] }}</td>
+        <td>{{ contacto[1] }}</td>
+        {% if has_autocarro %}
+        <td>{{ contacto[2] }}</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</body>
+</html>
