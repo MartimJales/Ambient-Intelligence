@@ -172,3 +172,6 @@ cython_debug/
 
 # Directory to IGNORE
 __ignore__/
+
+# Ignore PyWhatKit_DB.txt
+PyWhatKit_DB.txt
