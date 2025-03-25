@@ -56,7 +56,6 @@ def send_image(img):
             s.close()
 
 
-
 while True:
     print("[INFO] Waiting 2 seconds before taking the next photo...")
     time.sleep(2)
