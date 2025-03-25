@@ -1,7 +1,7 @@
 import sensor, image, time, network, usocket, pyb, os
 
 # Wi-Fi Credentials
-SSID = "Maria's Galaxy S22"
+SSID = "Maria's Galaxy S22" # personal wifi
 PASSWORD = "qchq7059"
 
 # Server IP
@@ -25,12 +25,12 @@ sensor.set_pixformat(sensor.RGB565)
 sensor.set_framesize(sensor.QVGA)
 sensor.skip_frames(time=2000)
 
-# black_threshold = [(0, 30, -10, 10, -10, 10)]
-black_threshold = [(50, 70, -10, 10, -50, -30)]  # (L, A, B) values for blue (logo do tecnico)
 
+# (L, A, B) values for blue (IST logo)
+# blue_threshold = [(50, 70, -10, 10, -50, -30)] # smaller range of blue values
+blue_threshold = [(40, 80, -15, 15, -60, -20)] # bigger range of blue values
 
-
-print("Detecting black objects...")
+print("Detecting blue objects...")
 
 
 def send_image(img):
@@ -39,7 +39,7 @@ def send_image(img):
         img_size = len(img_jpeg)  # Get the image size
 
         s = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-        s.settimeout(5)
+        s.settimeout(2)
         s.connect((SERVER_IP, SERVER_PORT))
 
         # Send image size first (convert to 4-byte representation)
@@ -58,16 +58,13 @@ def send_image(img):
 
 
 while True:
-    print("[INFO] Waiting 10 seconds before taking the next photo...")
-    time.sleep(5)  # Espera 10 segundos antes de tirar a próxima foto
+    print("[INFO] Waiting 2 seconds before taking the next photo...")
+    time.sleep(2)
 
     img = sensor.snapshot()
-    blobs = img.find_blobs(black_threshold, pixels_threshold=50, area_threshold=50)
+    blobs = img.find_blobs(blue_threshold, pixels_threshold=50, area_threshold=50)
 
     if blobs:
-        print("Black detected!")
-        # for blob in blobs:
-            # img.draw_rectangle(blob.rect(), color=(0, 255, 0))
-            # img.draw_cross(blob.cx(), blob.cy(), color=(255, 0, 0))
-
-        send_image(img)  # Enviar imagem diretamente para o servidor
+        print("Blue detected!")
+        send_image(img)
+        time.sleep(10)
