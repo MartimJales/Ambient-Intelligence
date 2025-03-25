@@ -1,53 +1,65 @@
-from flask import Flask, request, redirect, render_template_string
+from flask import Flask, request, render_template, redirect, url_for, flash
 import sqlite3
+import os
 
 app = Flask(__name__)
-
-HTML = """
-<!doctype html>
-<title>Contactos WhatsApp</title>
-<h2>Adicionar novo contacto</h2>
-<form method="post">
-  Nome: <input type="text" name="nome" required><br><br>
-  Número de telefone: <input type="text" name="numero" required><br><br>
-  <input type="submit" value="Adicionar">
-</form>
-
-{% if mensagem %}
-  <p><strong>{{ mensagem }}</strong></p>
-{% endif %}
-
-<hr>
-<h3>Contactos atuais:</h3>
-<ul>
-  {% for nome, numero in contactos %}
-    <li>{{ nome }} - {{ numero }}</li>
-  {% endfor %}
-</ul>
-"""
-
-def obter_contactos():
-    conn = sqlite3.connect('contactos.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT nome, numero FROM contactos")
-    contactos = cursor.fetchall()
-    conn.close()
-    return contactos
+app.secret_key = "some_simple_secret_key"
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    mensagem = ''
     if request.method == 'POST':
         nome = request.form['nome']
         numero = request.form['numero']
+
         conn = sqlite3.connect('contactos.db')
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO contactos (nome, numero) VALUES (?, ?)", (nome, numero))
+
+        # Cria a tabela se não existir (sem autocarros por agora)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS contactos (
+                nome TEXT,
+                numero TEXT PRIMARY KEY
+            )
+        """)
+
+        # Tenta actualizar o nome se o número já existir
+        cursor.execute("UPDATE contactos SET nome = ? WHERE numero = ?", (nome, numero))
+
+        # Se não actualizou nada (não existia), insere novo contacto
+        if cursor.rowcount == 0:
+            cursor.execute("INSERT INTO contactos (nome, numero) VALUES (?, ?)", (nome, numero))
+
         conn.commit()
         conn.close()
-        mensagem = f"✅ Contacto '{nome}' adicionado com sucesso!"
-    contactos = obter_contactos()
-    return render_template_string(HTML, mensagem=mensagem, contactos=contactos)
+
+        flash(f"✅ Contact '{nome}' saved successfully!")
+        return redirect(url_for('index'))
+
+    return render_template("index.html")
+
+
+@app.route('/admin/')
+def admin():
+    conn = sqlite3.connect('contactos.db')
+    cursor = conn.cursor()
+
+    # Obtemos os nomes das colunas para verificar se "autocarro" existe
+    cursor.execute("PRAGMA table_info(contactos)")
+    colunas = [col[1] for col in cursor.fetchall()]
+    has_autocarro = "autocarro" in colunas
+
+    # Buscamos os dados
+    if has_autocarro:
+        cursor.execute("SELECT nome, numero, autocarro FROM contactos")
+    else:
+        cursor.execute("SELECT nome, numero FROM contactos")
+
+    contactos = cursor.fetchall()
+    conn.close()
+
+    return render_template("admin.html", contactos=contactos, has_autocarro=has_autocarro)
+
 
 if __name__ == "__main__":
+    os.makedirs('static', exist_ok=True)
     app.run(debug=True, host='0.0.0.0', port=5000)
