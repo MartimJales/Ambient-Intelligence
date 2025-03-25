@@ -175,3 +175,6 @@ __ignore__/
 
 # Ignore PyWhatKit_DB.txt
 PyWhatKit_DB.txt
+
+# Ignore Contactos.db
+contactos.db
