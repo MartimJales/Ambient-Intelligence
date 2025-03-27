@@ -22,6 +22,15 @@
     <input type="text" name="numero" id="numero" required>
 
     <input type="submit" value="Add Contact">
+
+    <label>Choose your buses:</label>
+    <div class="checkbox-grid">
+    {% for i in range(1, 10) %}
+        <label>
+        <input type="checkbox" name="autocarros" value="{{ i }}"> {{ i }}
+        </label>
+    {% endfor %}
+    </div>
   </form>
 
   {% with messages = get_flashed_messages() %}
