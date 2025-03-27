@@ -11,28 +11,47 @@ def index():
         nome = request.form['nome']
         numero = request.form['numero']
 
+        # Obter lista de autocarros seleccionados (como strings)
+        autocarros = request.form.getlist('autocarros')
+        autocarros = sorted(set([
+            int(bus) for bus in autocarros if bus.isdigit() and 1 <= int(bus) <= 9
+        ]))  # Distingue e ordena os autocarros
+
+        if not autocarros:
+            flash("⚠️ Please select at least one bus.")
+            return redirect(url_for('index'))
+
+        autocarros_str = ",".join(map(str, autocarros))
+
         conn = sqlite3.connect('contactos.db')
         cursor = conn.cursor()
 
-        # Cria a tabela se não existir (sem autocarros por agora)
+        # Criar tabela (com PRIMARY KEY = numero)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS contactos (
                 nome TEXT,
-                numero TEXT PRIMARY KEY
+                numero TEXT PRIMARY KEY,
+                autocarros TEXT
             )
         """)
 
-        # Tenta actualizar o nome se o número já existir
-        cursor.execute("UPDATE contactos SET nome = ? WHERE numero = ?", (nome, numero))
+        # Tenta actualizar
+        cursor.execute("""
+            UPDATE contactos SET nome = ?, autocarros = ?
+            WHERE numero = ?
+        """, (nome, autocarros_str, numero))
 
-        # Se não actualizou nada (não existia), insere novo contacto
         if cursor.rowcount == 0:
-            cursor.execute("INSERT INTO contactos (nome, numero) VALUES (?, ?)", (nome, numero))
+            # Não existia → insere
+            cursor.execute("""
+                INSERT INTO contactos (nome, numero, autocarros)
+                VALUES (?, ?, ?)
+            """, (nome, numero, autocarros_str))
 
         conn.commit()
         conn.close()
 
-        flash(f"✅ Contact '{nome}' saved successfully!")
+        flash(f"✅ Contact '{nome}' saved with buses: {autocarros_str}")
         return redirect(url_for('index'))
 
     return render_template("index.html")
@@ -43,21 +62,20 @@ def admin():
     conn = sqlite3.connect('contactos.db')
     cursor = conn.cursor()
 
-    # Obtemos os nomes das colunas para verificar se "autocarro" existe
-    cursor.execute("PRAGMA table_info(contactos)")
-    colunas = [col[1] for col in cursor.fetchall()]
-    has_autocarro = "autocarro" in colunas
+    # Garantir estrutura correta da tabela
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS contactos (
+            nome TEXT,
+            numero TEXT PRIMARY KEY,
+            autocarros TEXT
+        )
+    """)
 
-    # Buscamos os dados
-    if has_autocarro:
-        cursor.execute("SELECT nome, numero, autocarro FROM contactos")
-    else:
-        cursor.execute("SELECT nome, numero FROM contactos")
-
+    cursor.execute("SELECT nome, numero, autocarros FROM contactos ORDER BY nome, numero")
     contactos = cursor.fetchall()
     conn.close()
 
-    return render_template("admin.html", contactos=contactos, has_autocarro=has_autocarro)
+    return render_template("admin.html", contactos=contactos)
 
 
 if __name__ == "__main__":
