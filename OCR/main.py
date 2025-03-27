@@ -106,20 +106,32 @@ def obter_numeros_da_base_dados(caminho_db="contactos.db"):
     return [numero[0] for numero in resultados]
 
 def enviar_mensagem_para_contactos(detected_number, caminho_db="contactos.db"):
-    """Vai buscar os contactos à base de dados e envia a mensagem personalizada para cada um via WhatsApp."""
+    """Envia mensagem apenas para contactos interessados no autocarro detectado."""
     try:
         conn = sqlite3.connect(caminho_db)
         cursor = conn.cursor()
-        cursor.execute("SELECT nome, numero FROM contactos")
+        cursor.execute("SELECT nome, numero, autocarros FROM contactos")
         contactos = cursor.fetchall()
         conn.close()
 
-        for nome, numero in contactos:
+        for nome, numero, autocarros_str in contactos:
+            if not autocarros_str:
+                continue  # se estiver vazio, ignora
+
+            autocarros = [x.strip() for x in autocarros_str.split(',')]
+            if str(detected_number) not in autocarros:
+                continue  # este contacto não está interessado neste autocarro
+
             mensagem = f"Hello {nome}, the bus number *{detected_number}* is arriving at IST :)"
-            print(f"[INFO] Sending message to {nome}")
+            print(f"[INFO] Sending message to {nome} ({numero})")
+
             with open(os.devnull, 'w') as fnull:
                 with contextlib.redirect_stdout(fnull), contextlib.redirect_stderr(fnull):
                     kit.sendwhatmsg_instantly(numero, mensagem, tab_close=True)
+
+    except Exception as e:
+        print(f"[ERRO] Falha ao enviar mensagens: {e}")
+
 
     except Exception as e:
         print(f"[ERRO] Falha ao enviar mensagens: {e}")
