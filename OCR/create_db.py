@@ -11,7 +11,7 @@ cursor.execute("""
 CREATE TABLE IF NOT EXISTS contactos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT,
-    numero TEXT
+    autocarros TEXT
 );
 """)
 
